@@ -14,15 +14,31 @@ def formatar_data(valor):
         return valor.strftime('%d-%m-%Y')
     return valor
 
+# Função para calcular o tempo restante entre duas datas
+def calcular_tempo_restante(data_inicio, data_fim):
+    if isinstance(data_inicio, datetime.datetime) and isinstance(data_fim, datetime.datetime):
+        return (data_fim - data_inicio).days
+    return ""
+
 # Atualizar a lista de linhas formatadas e colunas válidas (excluindo "Coluna_10" até "Coluna_26")
 def atualizar_dados():
     global linhas_formatadas, colunas_validas
     linhas_formatadas = []
     for linha in aba_ativa.iter_rows(min_row=5, max_col=9, values_only=True):  # Limitando as colunas até a 9ª (exclui Coluna_10 até Coluna_26)
         linha_formatada = [formatar_data(celula) for celula in linha]
+
+        # Cálculo do tempo restante (5ª e 6ª colunas)
+        if linha[4] and linha[5]:  # Verifica se ambas as datas estão preenchidas
+            data_inicio = linha[4]
+            data_fim = linha[5]
+            tempo_restante = calcular_tempo_restante(data_inicio, data_fim)
+            linha_formatada.append(str(tempo_restante))  # Adiciona o tempo restante à última coluna
+        else:
+            linha_formatada.append("")  # Adiciona uma célula vazia se as datas não existirem
+
         if any(celula is not None for celula in linha_formatada):
             linhas_formatadas.append(linha_formatada)
-    
+
     # Ordenar as linhas formatadas pela primeira coluna
     linhas_formatadas.sort(key=lambda x: str(x[0]).lower() if x[0] is not None else "")
 
