@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import scrolledtext, messagebox
+from tkinter import PhotoImage
 from openpyxl import load_workbook
 from prettytable import PrettyTable
 import datetime
@@ -14,15 +15,31 @@ def formatar_data(valor):
         return valor.strftime('%d-%m-%Y')
     return valor
 
+# Função para calcular o tempo restante entre duas datas
+def calcular_tempo_restante(data_inicio, data_fim):
+    if isinstance(data_inicio, datetime.datetime) and isinstance(data_fim, datetime.datetime):
+        return (data_fim - data_inicio).days
+    return ""
+
 # Atualizar a lista de linhas formatadas e colunas válidas (excluindo "Coluna_10" até "Coluna_26")
 def atualizar_dados():
     global linhas_formatadas, colunas_validas
     linhas_formatadas = []
     for linha in aba_ativa.iter_rows(min_row=5, max_col=9, values_only=True):  # Limitando as colunas até a 9ª (exclui Coluna_10 até Coluna_26)
         linha_formatada = [formatar_data(celula) for celula in linha]
+
+        # Cálculo do tempo restante (5ª e 6ª colunas)
+        if linha[4] and linha[5]:  # Verifica se ambas as datas estão preenchidas
+            data_inicio = linha[4]
+            data_fim = linha[5]
+            tempo_restante = calcular_tempo_restante(data_inicio, data_fim)
+            linha_formatada.append(str(tempo_restante))  # Adiciona o tempo restante à última coluna
+        else:
+            linha_formatada.append("")  # Adiciona uma célula vazia se as datas não existirem
+
         if any(celula is not None for celula in linha_formatada):
             linhas_formatadas.append(linha_formatada)
-    
+
     # Ordenar as linhas formatadas pela primeira coluna
     linhas_formatadas.sort(key=lambda x: str(x[0]).lower() if x[0] is not None else "")
 
@@ -82,7 +99,7 @@ def exibir_tabela():
 # Função para criar uma nova linha
 def criar_linha():
     janela_criar = tk.Toplevel()
-    janela_criar.title("Criar Linha")
+    janela_criar.title("Acrescentar Colaborador e Seus Dados")
 
     campos = []
 
@@ -106,9 +123,9 @@ def criar_linha():
 # Função para alterar uma linha existente (selecionando pela primeira coluna)
 def alterar_linha():
     janela_alterar = tk.Toplevel()
-    janela_alterar.title("Alterar Linha")
+    janela_alterar.title("Alterar Informações sobre o Colaborador")
 
-    label_linha = tk.Label(janela_alterar, text="Valor da primeira coluna para alterar:")
+    label_linha = tk.Label(janela_alterar, text="Nome Completo Colaborador:")
     label_linha.grid(row=0, column=0)
     entrada_valor = tk.Entry(janela_alterar)
     entrada_valor.grid(row=0, column=1)
@@ -139,9 +156,9 @@ def alterar_linha():
 # Função para excluir uma linha existente (selecionando pela primeira coluna)
 def excluir_linha():
     janela_excluir = tk.Toplevel()
-    janela_excluir.title("Excluir Linha")
+    janela_excluir.title("Excluir Colaborador")
 
-    label_linha = tk.Label(janela_excluir, text="Valor da primeira coluna para excluir:")
+    label_linha = tk.Label(janela_excluir, text="Nome Completo Colaborador para excluir:")
     label_linha.grid(row=0, column=0)
     entrada_valor = tk.Entry(janela_excluir)
     entrada_valor.grid(row=0, column=1)
@@ -165,17 +182,23 @@ def tela_inicial():
     janela = tk.Tk()
     janela.title("Gestão de Exames Periódicos")
 
-    botao_exibir = tk.Button(janela, text="Exibir Linhas", command=exibir_tabela)
-    botao_exibir.pack(padx=10, pady=10)
+    # Carregar a imagem do logotipo 
+    logotipo = PhotoImage(file="LogoGM.png")
+    label_logo = tk.Label(janela, image=logotipo)
+    label_logo.grid(row=0, column=0, rowspan=4, padx=20, pady=20, sticky="w")  # Logotipo à esquerda
 
-    botao_criar = tk.Button(janela, text="Criar Linha", command=criar_linha)
-    botao_criar.pack(padx=10, pady=10)
+    # Criação dos botões e alinhamento à direita
+    botao_exibir = tk.Button(janela, text="Exibir Linhas", command=exibir_tabela, width=20)
+    botao_exibir.grid(row=0, column=1, padx=10, pady=10, sticky="e")
 
-    botao_alterar = tk.Button(janela, text="Alterar Linha", command=alterar_linha)
-    botao_alterar.pack(padx=10, pady=10)
+    botao_criar = tk.Button(janela, text="Criar Linha", command=criar_linha, width=20)
+    botao_criar.grid(row=1, column=1, padx=10, pady=10, sticky="e")
 
-    botao_excluir = tk.Button(janela, text="Excluir Linha", command=excluir_linha)
-    botao_excluir.pack(padx=10, pady=10)
+    botao_alterar = tk.Button(janela, text="Alterar Linha", command=alterar_linha, width=20)
+    botao_alterar.grid(row=2, column=1, padx=10, pady=10, sticky="e")
+
+    botao_excluir = tk.Button(janela, text="Excluir Linha", command=excluir_linha, width=20)
+    botao_excluir.grid(row=3, column=1, padx=10, pady=10, sticky="e")
 
     janela.mainloop()
 

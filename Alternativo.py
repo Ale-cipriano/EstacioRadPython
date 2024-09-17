@@ -1,11 +1,12 @@
 import tkinter as tk
-from tkinter import scrolledtext, messagebox
+from tkinter import messagebox, PhotoImage
 from openpyxl import load_workbook
+from openpyxl.styles import PatternFill
 from prettytable import PrettyTable
 import datetime
 
 # Carregar a planilha Excel
-tabela = load_workbook("GESTAO_DE_EXAMES_PERIODICOS.xlsx", data_only=True)
+tabela = load_workbook("GESTAO_DE_EXAMES_PERIODICOS.xlsx", data_only=False)  # data_only=False para permitir gravação
 aba_ativa = tabela.active
 
 # Função para formatar datas no padrão dd-mm-aaaa
@@ -24,19 +25,32 @@ def calcular_tempo_restante(data_inicio, data_fim):
 def atualizar_dados():
     global linhas_formatadas, colunas_validas
     linhas_formatadas = []
-    for linha in aba_ativa.iter_rows(min_row=5, max_col=9, values_only=True):  # Limitando as colunas até a 9ª (exclui Coluna_10 até Coluna_26)
-        linha_formatada = [formatar_data(celula) for celula in linha]
+    
+    for linha_idx, linha in enumerate(aba_ativa.iter_rows(min_row=5, max_col=9), start=5):  # indexando a partir da linha 5
+        linha_formatada = [formatar_data(celula.value) for celula in linha]
 
-        # Cálculo do tempo restante (5ª e 6ª colunas)
-        if linha[4] and linha[5]:  # Verifica se ambas as datas estão preenchidas
-            data_inicio = linha[4]
-            data_fim = linha[5]
-            tempo_restante = calcular_tempo_restante(data_inicio, data_fim)
-            linha_formatada.append(str(tempo_restante))  # Adiciona o tempo restante à última coluna
+        # Cálculo do tempo restante (colunas F e G)
+        if linha[4].value and linha[5].value:  # Verifica se ambas as datas estão preenchidas
+            data_inicio = linha[4].value
+            data_fim = linha[5].value
+            if isinstance(data_inicio, datetime.datetime) and isinstance(data_fim, datetime.datetime):
+                tempo_restante = calcular_tempo_restante(data_inicio, data_fim)
+                linha_formatada.append(tempo_restante)  # Adiciona o tempo restante à última coluna
+                linha[8].value = tempo_restante  # Atualiza a célula da coluna I com o tempo restante
+                if tempo_restante <= 60:
+                    linha[8].fill = PatternFill(start_color="FF6666", end_color="FF6666", fill_type="solid")  # Preenchimento vermelho
+                else:
+                    linha[8].fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")  # Preenchimento branco
+            else:
+                linha_formatada.append("")
+                linha[8].value = ""
+                linha[8].fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")  # Preenchimento branco
         else:
-            linha_formatada.append("")  # Adiciona uma célula vazia se as datas não existirem
+            linha_formatada.append("")
+            linha[8].value = ""
+            linha[8].fill = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")  # Preenchimento branco
 
-        if any(celula is not None for celula in linha_formatada):
+        if any(celula.value is not None for celula in linha):
             linhas_formatadas.append(linha_formatada)
 
     # Ordenar as linhas formatadas pela primeira coluna
@@ -62,6 +76,7 @@ def exibir_tabela():
     atualizar_dados()
     tabela_sem_colunas_vazias = PrettyTable()
     tabela_sem_colunas_vazias.field_names = [cabecalhos_unicos[i] for i in colunas_validas]
+
     for linha in linhas_formatadas:
         linha_filtrada = [linha[i] for i in colunas_validas]
         tabela_sem_colunas_vazias.add_row(linha_filtrada)
@@ -86,6 +101,13 @@ def exibir_tabela():
     cor_padrao = "#FFFFFF"
 
     for i, linha in enumerate(str(tabela_sem_colunas_vazias).split("\n")):
+        if i > 0:  # Ignora o cabeçalho da tabela
+            if len(linhas_formatadas[i-1]) > len(colunas_validas) and isinstance(linhas_formatadas[i-1][-1], int):
+                tempo_restante = linhas_formatadas[i-1][-1]
+                if tempo_restante <= 60:
+                    txt_tabela.insert(tk.END, linha + "\n", ("alerta",))
+                    continue
+
         if i % 2 == 0:
             txt_tabela.insert(tk.END, linha + "\n", ("laranja",))
         else:
@@ -93,12 +115,13 @@ def exibir_tabela():
 
     txt_tabela.tag_configure("laranja", background=cor_laranja_claro)
     txt_tabela.tag_configure("branco", background=cor_padrao)
+    txt_tabela.tag_configure("alerta", background="#FF6666")  # Cor vermelha para alerta
     txt_tabela.config(state=tk.DISABLED)
 
 # Função para criar uma nova linha
 def criar_linha():
     janela_criar = tk.Toplevel()
-    janela_criar.title("Criar Linha")
+    janela_criar.title("Acrescentar Colaborador e Seus Dados")
 
     campos = []
 
@@ -122,9 +145,9 @@ def criar_linha():
 # Função para alterar uma linha existente (selecionando pela primeira coluna)
 def alterar_linha():
     janela_alterar = tk.Toplevel()
-    janela_alterar.title("Alterar Linha")
+    janela_alterar.title("Alterar Informações sobre o Colaborador")
 
-    label_linha = tk.Label(janela_alterar, text="Valor da primeira coluna para alterar:")
+    label_linha = tk.Label(janela_alterar, text="Nome Completo Colaborador:")
     label_linha.grid(row=0, column=0)
     entrada_valor = tk.Entry(janela_alterar)
     entrada_valor.grid(row=0, column=1)
@@ -155,9 +178,9 @@ def alterar_linha():
 # Função para excluir uma linha existente (selecionando pela primeira coluna)
 def excluir_linha():
     janela_excluir = tk.Toplevel()
-    janela_excluir.title("Excluir Linha")
+    janela_excluir.title("Excluir Colaborador")
 
-    label_linha = tk.Label(janela_excluir, text="Valor da primeira coluna para excluir:")
+    label_linha = tk.Label(janela_excluir, text="Nome Completo Colaborador para excluir:")
     label_linha.grid(row=0, column=0)
     entrada_valor = tk.Entry(janela_excluir)
     entrada_valor.grid(row=0, column=1)
@@ -181,17 +204,23 @@ def tela_inicial():
     janela = tk.Tk()
     janela.title("Gestão de Exames Periódicos")
 
-    botao_exibir = tk.Button(janela, text="Exibir Linhas", command=exibir_tabela)
-    botao_exibir.pack(padx=10, pady=10)
+    # Carregar a imagem do logotipo 
+    logotipo = PhotoImage(file="LogoGM.png")
+    label_logo = tk.Label(janela, image=logotipo)
+    label_logo.grid(row=0, column=0, rowspan=4, padx=20, pady=20, sticky="w")  # Logotipo à esquerda
 
-    botao_criar = tk.Button(janela, text="Criar Linha", command=criar_linha)
-    botao_criar.pack(padx=10, pady=10)
+    # Criação dos botões e alinhamento à direita
+    botao_exibir = tk.Button(janela, text="Exibir Linhas", command=exibir_tabela, width=20)
+    botao_exibir.grid(row=0, column=1, padx=10, pady=10, sticky="e")
 
-    botao_alterar = tk.Button(janela, text="Alterar Linha", command=alterar_linha)
-    botao_alterar.pack(padx=10, pady=10)
+    botao_criar = tk.Button(janela, text="Criar Linha", command=criar_linha, width=20)
+    botao_criar.grid(row=1, column=1, padx=10, pady=10, sticky="e")
 
-    botao_excluir = tk.Button(janela, text="Excluir Linha", command=excluir_linha)
-    botao_excluir.pack(padx=10, pady=10)
+    botao_alterar = tk.Button(janela, text="Alterar Linha", command=alterar_linha, width=20)
+    botao_alterar.grid(row=2, column=1, padx=10, pady=10, sticky="e")
+
+    botao_excluir = tk.Button(janela, text="Excluir Linha", command=excluir_linha, width=20)
+    botao_excluir.grid(row=3, column=1, padx=10, pady=10, sticky="e")
 
     janela.mainloop()
 
