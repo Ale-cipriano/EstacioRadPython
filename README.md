@@ -8,6 +8,8 @@ O objetivo da aplicação é consultar acessar a tabela 'GESTAO_DE_EXAMES_PERIOD
 Através da aplicação poderáo ser feitas consultas, inserções, alterações e exclusões terminando atualizações no próprio arquivo 'GESTAO_DE_EXAMES_PERIODICOS'.
 Uma das finalidades seria enviar por email relação de colaboradores que têm um prazo de revisão de suas ASOs com menos de 60 dias.
 
+![TelaI_inicial](https://github.com/user-attachments/assets/b42aaa2d-d750-4fa1-8b6e-fc96e398cc4b)
+
 
 
 
