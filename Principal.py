@@ -123,7 +123,7 @@ def criar_linha():
 # Função para alterar uma linha existente (selecionando pela primeira coluna)
 def alterar_linha():
     janela_alterar = tk.Toplevel()
-    janela_alterar.title("Alterar Informações sobre o Colaborador")
+    janela_alterar.title("Alterar Informações")
 
     label_linha = tk.Label(janela_alterar, text="Nome Completo Colaborador:")
     label_linha.grid(row=0, column=0)
@@ -180,7 +180,7 @@ def excluir_linha():
 # Função para criar a tela inicial com os botões de ação
 def tela_inicial():
     janela = tk.Tk()
-    janela.title("Gestão de Exames Periódicos")
+    janela.title("GESTÃO EXAMES PERIÓDICOS")
 
     # Carregar a imagem do logotipo 
     logotipo = PhotoImage(file="LogoGM.png")
@@ -188,16 +188,16 @@ def tela_inicial():
     label_logo.grid(row=0, column=0, rowspan=4, padx=20, pady=20, sticky="w")  # Logotipo à esquerda
 
     # Criação dos botões e alinhamento à direita
-    botao_exibir = tk.Button(janela, text="Exibir Linhas", command=exibir_tabela, width=20)
+    botao_exibir = tk.Button(janela, text="Exibir Tabela", command=exibir_tabela, width=20)
     botao_exibir.grid(row=0, column=1, padx=10, pady=10, sticky="e")
 
-    botao_criar = tk.Button(janela, text="Criar Linha", command=criar_linha, width=20)
+    botao_criar = tk.Button(janela, text="Acrescentar Colaborador", command=criar_linha, width=20)
     botao_criar.grid(row=1, column=1, padx=10, pady=10, sticky="e")
 
-    botao_alterar = tk.Button(janela, text="Alterar Linha", command=alterar_linha, width=20)
+    botao_alterar = tk.Button(janela, text="Alterar Informações", command=alterar_linha, width=20)
     botao_alterar.grid(row=2, column=1, padx=10, pady=10, sticky="e")
 
-    botao_excluir = tk.Button(janela, text="Excluir Linha", command=excluir_linha, width=20)
+    botao_excluir = tk.Button(janela, text="Excluir Colaborador", command=excluir_linha, width=20)
     botao_excluir.grid(row=3, column=1, padx=10, pady=10, sticky="e")
 
     janela.mainloop()
