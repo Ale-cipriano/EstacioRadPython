@@ -4,6 +4,9 @@ from tkinter import PhotoImage
 from openpyxl import load_workbook
 from prettytable import PrettyTable
 import datetime
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 # Carregar a planilha Excel
 tabela = load_workbook("GESTAO_DE_EXAMES_PERIODICOS.xlsx", data_only=True)
@@ -21,11 +24,58 @@ def calcular_tempo_restante(data_inicio, data_fim):
         return (data_fim - data_inicio).days
     return ""
 
-# Atualizar a lista de linhas formatadas e colunas válidas (excluindo "Coluna_10" até "Coluna_26")
+# Função para filtrar as linhas onde o valor da coluna I é <= 60
+def filtrar_linhas():
+    linhas_filtradas = []
+    for linha in aba_ativa.iter_rows(min_row=5, max_col=9, values_only=True):
+        if linha[8] and isinstance(linha[8], int) and linha[8] <= 60:  # Verifica se o valor da coluna I (índice 8) é <= 60
+            linha_formatada = [formatar_data(celula) for celula in linha[:9]]
+            linhas_filtradas.append(linha_formatada)
+    return linhas_filtradas
+
+# Função para enviar o e-mail com as linhas filtradas
+def enviar_email(destinatario):
+    linhas_filtradas = filtrar_linhas()
+    if not linhas_filtradas:
+        messagebox.showinfo("Informação", "Nenhuma linha encontrada com valor <= 60 na coluna I.")
+        return
+
+    corpo_email = "Segue abaixo a lista de colaboradores com tempo restante igual ou menor a 60 dias:\n\n"
+    
+    for linha in linhas_filtradas:
+        corpo_email += " | ".join(str(campo) if campo is not None else "" for campo in linha) + "\n"
+
+    # Configurações de e-mail
+    remetente = "seuemail@gmail.com"  # Seu e-mail
+    senha = "suasenha"  # Sua senha de e-mail
+
+    mensagem = MIMEMultipart()
+    mensagem['From'] = remetente
+    mensagem['To'] = destinatario
+    mensagem['Subject'] = "Colaboradores com tempo restante <= 60 dias"
+
+    # Adicionar o corpo ao e-mail
+    mensagem.attach(MIMEText(corpo_email, 'plain'))
+
+    try:
+        # Conectar ao servidor SMTP do Gmail
+        servidor = smtplib.SMTP('smtp.gmail.com', 587)
+        servidor.starttls()
+        servidor.login(remetente, senha)
+
+        # Enviar o e-mail
+        servidor.send_message(mensagem)
+        servidor.quit()
+
+        messagebox.showinfo("Sucesso", "E-mail enviado com sucesso!")
+    except Exception as e:
+        messagebox.showerror("Erro", f"Falha ao enviar o e-mail: {str(e)}")
+
+# Função para atualizar dados da tabela
 def atualizar_dados():
     global linhas_formatadas, colunas_validas
     linhas_formatadas = []
-    for linha in aba_ativa.iter_rows(min_row=5, max_col=9, values_only=True):  # Limitando as colunas até a 9ª (exclui Coluna_10 até Coluna_26)
+    for linha in aba_ativa.iter_rows(min_row=5, max_col=9, values_only=True):  # Limitando as colunas até a 9ª
         linha_formatada = [formatar_data(celula) for celula in linha]
 
         # Cálculo do tempo restante (5ª e 6ª colunas)
@@ -49,7 +99,7 @@ def atualizar_dados():
             if any(linha[i] is not None for linha in linhas_formatadas):
                 colunas_validas.append(i)
 
-# Definir cabeçalhos da tabela com base na 4ª linha (limitando até 9 colunas)
+# Definir cabeçalhos da tabela com base na 4ª linha
 cabecalhos = [celula.value if celula.value is not None else f"Coluna_{i}" for i, celula in enumerate(aba_ativa[4][:9], start=1)]
 cabecalhos_unicos = []
 for i, cabecalho in enumerate(cabecalhos):
@@ -95,6 +145,27 @@ def exibir_tabela():
     txt_tabela.tag_configure("laranja", background=cor_laranja_claro)
     txt_tabela.tag_configure("branco", background=cor_padrao)
     txt_tabela.config(state=tk.DISABLED)
+
+# Função para criar a tela de envio de e-mail
+def tela_envio_email():
+    janela_email = tk.Toplevel()
+    janela_email.title("Enviar e-mail")
+
+    label_email = tk.Label(janela_email, text="Enviar para:")
+    label_email.grid(row=0, column=0)
+    entrada_email = tk.Entry(janela_email)
+    entrada_email.grid(row=0, column=1)
+
+    def enviar():
+        destinatario = entrada_email.get()
+        if destinatario:
+            enviar_email(destinatario)
+            janela_email.destroy()
+        else:
+            messagebox.showerror("Erro", "Por favor, insira um endereço de e-mail válido.")
+
+    botao_enviar = tk.Button(janela_email, text="Enviar", command=enviar)
+    botao_enviar.grid(row=1, column=1)
 
 # Função para criar uma nova linha
 def criar_linha():
@@ -185,7 +256,7 @@ def tela_inicial():
     # Carregar a imagem do logotipo 
     logotipo = PhotoImage(file="LogoGM.png")
     label_logo = tk.Label(janela, image=logotipo)
-    label_logo.grid(row=0, column=0, rowspan=4, padx=20, pady=20, sticky="w")  # Logotipo à esquerda
+    label_logo.grid(row=0, column=0, rowspan=5, padx=20, pady=20, sticky="w")  # Logotipo à esquerda
 
     # Criação dos botões e alinhamento à direita
     botao_exibir = tk.Button(janela, text="Exibir Tabela", command=exibir_tabela, width=20)
@@ -199,6 +270,9 @@ def tela_inicial():
 
     botao_excluir = tk.Button(janela, text="Excluir Colaborador", command=excluir_linha, width=20)
     botao_excluir.grid(row=3, column=1, padx=10, pady=10, sticky="e")
+
+    botao_enviar_email = tk.Button(janela, text="Enviar Relatório por E-mail", command=tela_envio_email, width=20)
+    botao_enviar_email.grid(row=4, column=1, padx=10, pady=10, sticky="e")
 
     janela.mainloop()
 
